@@ -1,0 +1,75 @@
+# product-scout 配置文件
+# 路径都相对于这个文件所在的目录。
+
+[data]
+dir = "data"            # SQLite 数据库和导出文件放在这里
+prompts_dir = "prompts" # 评分提示词；目录里没有的文件会用内置默认值
+
+[network]
+proxy = ""              # 例如 "http://127.0.0.1:7890"；留空则使用环境变量 HTTPS_PROXY
+timeout = 30
+
+[llm]
+# provider = "auto"：base_url 是 api.anthropic.com 时走 Anthropic 官方 SDK（需 pip install anthropic），
+# 其他情况走 OpenAI 兼容接口：DeepSeek、千问、智谱、OpenAI、本地 Ollama ……
+provider = "auto"
+base_url = "https://api.deepseek.com/v1"
+model = "deepseek-chat"
+api_key_env = "SCOUT_LLM_API_KEY"  # 从这个环境变量（或同目录 .env）读取 Key
+temperature = 0.5       # 仅 OpenAI 兼容接口；Claude 不接受自定义 temperature
+effort = "low"          # 仅 Claude：思考强度 low / medium / high
+refusal_fallback = true # 仅 Claude：模型拒答时由服务端自动换模型重试
+max_new_per_run = 40    # 每次最多给多少个新产品打分，控制花费
+readme_chars = 4000     # 喂给模型的 README 最大长度
+
+# 视频价值五个维度的权重（会自动归一化）
+[scoring.weights]
+visual = 0.30           # 画面冲击力：3 秒能不能看懂
+hands_on = 0.20         # 观众能不能马上上手
+paid_alternative = 0.15 # 是不是付费产品的平替 / 能省多少时间
+audience_fit = 0.25     # 和你的观众、你的频道方向有多相关
+novelty = 0.10          # 新鲜感
+
+# 命中这些风险标记时，视频价值乘以对应系数
+[scoring.risk_penalty]
+nsfw = 0.1
+grey = 0.3              # 灰产、薅羊毛、绕过付费
+copyright = 0.6         # 盗版、模拟器、下载器
+security = 0.7          # 需要关闭安全机制、改固件等
+hardware = 0.85         # 需要特殊硬件才能体验
+
+[sources.github]
+enabled = true
+days = 21               # 只看最近 N 天新建的仓库
+min_stars = 300
+pages = 2               # 每页 50 个
+query_extra = ""        # 额外的搜索条件，例如 "topic:ai" 或 "language:python"
+token_env = "GITHUB_TOKEN"  # 可选；有 token 时限额更高
+refresh_limit = 30      # 没有出现在搜索结果里、但还在池子里的仓库，每次最多刷新多少个 star 数
+
+[sources.huggingface]
+enabled = true
+limit = 60              # 抓取 Trending Spaces 前 N 个
+min_likes = 20
+max_age_days = 120      # 忽略太老的 Space
+
+[sources.hackernews]
+enabled = true
+days = 7
+min_points = 50         # Show HN 最低分
+github_stories = true   # 同时抓首页上链接到 GitHub 的普通帖子
+github_min_points = 100
+
+[coverage]
+# 检查中文圈有没有人做过这个产品的视频；有人做了，时效分就下降
+enabled = true
+provider = "bilibili"
+use_proxy = false       # 国内站点通常不需要代理
+recheck_hours = 24
+max_per_run = 40
+min_value = 40          # 只检查视频价值不低于这个分数的产品
+
+[rank]
+window_min_value = 70        # 窗口期提醒：视频价值至少多少
+window_min_timeliness = 0.5  # 窗口期提醒：时效分至少多少
+top_n = 10                   # 日报里选题池展示多少个

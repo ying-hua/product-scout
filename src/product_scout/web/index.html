@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>product-scout · 选题池</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #fff; --ink: #1d1d1b; --muted: #77756e; --line: #e4e1d8;
+    --accent: #d9480f; --good: #2b8a3e; --warn: #c27c0e; --bad: #c92a2a; --chip: #f0eee8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161614; --card: #1f1f1c; --ink: #ecebe6; --muted: #9a988f; --line: #33322e;
+      --chip: #2a2926; --accent: #ff7a3d; --good: #51cf66; --warn: #f0b03f; --bad: #ff6b6b; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.55 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  a { color: inherit; }
+  header { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .bar { max-width: 1100px; margin: 0 auto; padding: 14px 20px 0; }
+  .top { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  h1 { font-size: 18px; margin: 0; letter-spacing: .02em; }
+  .meta { color: var(--muted); font-size: 12px; flex: 1; }
+  input[type=search] { border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    border-radius: 8px; padding: 6px 10px; width: 220px; font: inherit; }
+  nav { display: flex; gap: 2px; margin-top: 10px; overflow-x: auto; }
+  nav button { border: 0; background: none; color: var(--muted); font: inherit; padding: 8px 12px;
+    border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+  nav button.on { color: var(--ink); border-color: var(--accent); font-weight: 600; }
+  nav .n { font-size: 11px; margin-left: 4px; color: var(--muted); }
+  nav button.hot .n { color: var(--accent); font-weight: 700; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px 20px 80px; }
+  .notice { background: var(--chip); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; color: var(--muted); }
+  .notice code { color: var(--ink); }
+  .empty { text-align: center; color: var(--muted); padding: 60px 0; }
+  .card { display: grid; grid-template-columns: 64px 1fr auto; gap: 14px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .card.window { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .prio { text-align: center; }
+  .prio b { display: block; font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .prio span { font-size: 11px; color: var(--muted); }
+  .name { font-size: 16px; font-weight: 650; text-decoration: none; }
+  .name:hover { text-decoration: underline; }
+  .cat { font-size: 11px; color: var(--muted); margin-left: 8px; }
+  .pin { cursor: pointer; border: 0; background: none; font-size: 15px; color: var(--muted); padding: 0 4px; }
+  .pin.on { color: var(--warn); }
+  .pitch { margin: 4px 0 2px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .angle { color: var(--muted); font-size: 13px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 2px 9px; font-size: 12px; text-decoration: none; white-space: nowrap; }
+  a.chip:hover { outline: 1px solid var(--line); }
+  .cov-none { color: var(--good); } .cov-light { color: var(--warn); } .cov-heavy { color: var(--bad); }
+  .risk { color: var(--bad); }
+  .side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; min-width: 150px; }
+  select { font: inherit; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; background: var(--card); color: var(--ink); }
+  .linkbtn { border: 0; background: none; color: var(--muted); cursor: pointer; font: inherit; font-size: 12px; padding: 0; }
+  .linkbtn:hover { color: var(--ink); text-decoration: underline; }
+  .detail { grid-column: 1 / -1; border-top: 1px dashed var(--line); padding-top: 12px; display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+  .detail h4 { margin: 0 0 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .dim { display: grid; grid-template-columns: 82px 1fr 26px; gap: 8px; align-items: center; font-size: 12px; }
+  .dim i { display: block; height: 6px; border-radius: 3px; background: var(--chip); overflow: hidden; }
+  .dim i::after { content: ""; display: block; height: 100%; width: var(--w); background: var(--accent); }
+  .kv { font-size: 12px; color: var(--muted); } .kv b { color: var(--ink); font-weight: 600; }
+  textarea { width: 100%; min-height: 70px; font: inherit; border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px; background: var(--bg); color: var(--ink); resize: vertical; }
+  .vids a { display: block; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  svg.spark { width: 100%; height: 48px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg);
+    padding: 6px 14px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: .92; }
+  @media (max-width: 640px) {
+    .card { grid-template-columns: 48px 1fr; } .side { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }
+    input[type=search] { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <div class="top">
+    <h1>product-scout</h1>
+    <span class="meta" id="meta"></span>
+    <input type="search" id="q" placeholder="搜索名称、简介、备注…">
+  </div>
+  <nav id="tabs"></nav>
+</div></header>
+<main id="main"></main>
+<div class="toast" id="toast"></div>
+<script>
+const STATUS = [["new","新发现"],["watching","观察中"],["tried","已试用"],["scheduled","排期"],["published","已发布"],["dropped","放弃"]];
+let state = { tab: "window", q: "", open: new Set(), overview: null };
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = (v, d = 0) => v == null ? "–" : Number(v).toFixed(d);
+const num = (v) => v == null ? "" : v >= 10000 ? (v / 10000).toFixed(1) + "万" : v >= 1000 ? (v / 1000).toFixed(1) + "k" : String(Math.round(v));
+const ago = (iso) => { if (!iso) return ""; const h = (Date.now() - new Date(iso)) / 36e5;
+  return h < 1 ? "刚刚" : h < 24 ? Math.round(h) + " 小时前" : Math.round(h / 24) + " 天前"; };
+
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1400); }
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.status);
+  return r.json();
+}
+
+function tabs() {
+  const o = state.overview; if (!o) return;
+  const c = Object.fromEntries(o.statuses.map(s => [s.id, s.count]));
+  const active = ["new","watching","tried","scheduled"].reduce((a, s) => a + c[s], 0);
+  const list = [["window", "🔥 窗口期", o.window], ["active", "选题池", active], ...STATUS.map(([id, label]) => [id, label, c[id]])];
+  $("#tabs").innerHTML = list.map(([id, label, n]) =>
+    `<button data-tab="${id}" class="${state.tab === id ? "on" : ""} ${id === "window" && n ? "hot" : ""}">${label}<span class="n">${n}</span></button>`).join("");
+  const run = o.last_run ? `上次运行 ${ago(o.last_run.at)}` : "还没运行过：在终端执行 product-scout run";
+  $("#meta").textContent = run;
+}
+
+function spark(points) {
+  if (!points || points.length < 2) return "";
+  const xs = points.map(p => new Date(p[0]).getTime()), ys = points.map(p => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const pt = points.map((p, i) => `${((xs[i] - x0) / (x1 - x0 || 1) * 196 + 2).toFixed(1)},${(46 - (ys[i] - y0) / (y1 - y0 || 1) * 42).toFixed(1)}`);
+  return `<svg class="spark" viewBox="0 0 200 48" preserveAspectRatio="none"><polyline fill="none" stroke="currentColor" stroke-width="1.5" points="${pt.join(" ")}"/></svg>`;
+}
+
+const DIM_LABELS = { visual: "画面冲击力", hands_on: "能否上手", paid_alternative: "平替/省事", audience_fit: "观众相关", novelty: "新鲜感" };
+const METRIC_NAMES = { stars: "GitHub star", likes: "HF like", hn_points: "HN 分数" };
+
+function detail(p) {
+  const vd = p.value_detail || {}, td = p.timeliness_detail || {}, cd = p.coverage_detail || {};
+  const dims = vd.dimensions ? Object.entries(DIM_LABELS).map(([k, l]) =>
+    `<div class="dim"><span>${l}</span><i style="--w:${(vd.dimensions[k] || 0) * 10}%"></i><span>${fmt(vd.dimensions[k])}</span></div>`).join("")
+    : `<div class="kv">还没打分（需要设置大模型 Key）</div>`;
+  const runs = vd.runs ? `<div class="kv" style="margin-top:6px">两次独立打分：<b>${vd.runs.join(" / ")}</b>${vd.relevant === false ? " · <span class='risk'>不在选题范围</span>" : ""}</div>` : "";
+  const vel = Object.entries(td.velocity || {}).map(([k, v]) => `${METRIC_NAMES[k] || k} <b>+${num(v)}/天</b>`).join("，");
+  const hist = Object.entries(p.history || {}).map(([k, pts]) => pts.length > 1 ? `<div class="kv">${METRIC_NAMES[k] || k}</div>${spark(pts)}` : "").join("");
+  const vids = (cd.top || []).map(v => `<a href="${esc(v.url)}" target="_blank" rel="noopener">${num(v.plays)} 播放 · ${esc(v.title)}</a>`).join("");
+  return `<div class="detail">
+    <div><h4>视频价值 ${fmt(p.value)}</h4>${dims}${runs}</div>
+    <div><h4>时效 ${fmt(p.timeliness, 2)}</h4>
+      <div class="kv">增速：${vel || "–"}</div>
+      <div class="kv">出现在 <b>${(td.sources || []).length}</b> 个平台 · 创建于 <b>${td.age_days ?? "–"}</b> 天前</div>
+      <div class="kv">中文圈：<b class="cov-${p.coverage}">${esc(p.coverage_label)}</b>${cd.videos != null ? `（${cd.videos} 个视频，${num(cd.plays)} 播放）` : ""}</div>
+      ${hist}
+    </div>
+    <div><h4>备注</h4><textarea data-notes="${p.id}" placeholder="试用感受、拍摄思路…">${esc(p.notes)}</textarea>
+      ${vids ? `<h4 style="margin-top:10px">已有的中文视频</h4><div class="vids">${vids}</div>` : ""}
+    </div>
+  </div>`;
+}
+
+function card(p) {
+  const srcs = p.mentions.map(m => `<a class="chip" href="${esc(m.url)}" target="_blank" rel="noopener" title="${esc(m.title)}">${esc(m.source_label)}${m.value != null ? " · " + num(m.value) + " " + esc(m.metric_label) : ""}</a>`).join("");
+  const risks = (p.risks || []).map(r => `<span class="chip risk">⚠ ${esc(r)}</span>`).join("");
+  const opts = STATUS.map(([id, l]) => `<option value="${id}" ${p.status === id ? "selected" : ""}>${l}</option>`).join("");
+  const open = state.open.has(p.id);
+  return `<article class="card ${p.window ? "window" : ""}" id="p${p.id}">
+    <div class="prio"><b>${fmt(p.priority)}</b><span>优先级</span></div>
+    <div>
+      <a class="name" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>
+      <button class="pin ${p.pinned ? "on" : ""}" data-pin="${p.id}" title="置顶">★</button>
+      ${p.category ? `<span class="cat">${esc(p.category)}</span>` : ""}
+      <div class="pitch">${esc(p.pitch || p.description)}</div>
+      ${p.angle ? `<div class="angle">角度：${esc(p.angle)}</div>` : ""}
+      <div class="chips">
+        <span class="chip">价值 ${fmt(p.value)}</span>
+        <span class="chip">时效 ${fmt(p.timeliness, 2)}</span>
+        <span class="chip cov-${p.coverage}">中文圈 ${esc(p.coverage_label)}</span>
+        ${srcs}${risks}
+      </div>
+    </div>
+    <div class="side">
+      <select data-status="${p.id}">${opts}</select>
+      <span class="kv">发现于 ${ago(p.first_seen)}</span>
+      <button class="linkbtn" data-toggle="${p.id}">${open ? "收起" : "详情 / 备注"}</button>
+    </div>
+    ${open ? `<div class="detail-slot" style="grid-column:1/-1" data-detail="${p.id}"></div>` : ""}
+  </article>`;
+}
+
+async function load() {
+  state.overview = await api("/api/overview");
+  tabs();
+  const list = await api(`/api/products?status=${state.tab}&q=${encodeURIComponent(state.q)}`);
+  let html = "";
+  if (state.overview.llm_missing_env) html += `<div class="notice">还没设置大模型 Key，产品只有热度、没有视频价值分。把 Key 写进环境变量 <code>${esc(state.overview.llm_missing_env)}</code> 或项目目录的 <code>.env</code>，再运行 <code>product-scout run</code>。</div>`;
+  if (state.tab === "window" && !list.length) html += `<div class="empty">今天没有窗口期选题。热点不是每天都有，去「选题池」看看。</div>`;
+  else if (!list.length) html += `<div class="empty">这里是空的</div>`;
+  $("#main").innerHTML = html + list.map(card).join("");
+  for (const id of state.open) fillDetail(id);
+}
+
+async function fillDetail(id) {
+  const slot = document.querySelector(`[data-detail="${id}"]`); if (!slot) return;
+  slot.innerHTML = detail(await api(`/api/products/${id}`));
+}
+
+async function patch(id, body, msg) {
+  await api(`/api/products/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (msg) toast(msg);
+}
+
+document.addEventListener("click", async (e) => {
+  const t = e.target;
+  if (t.closest("[data-tab]")) { state.tab = t.closest("[data-tab]").dataset.tab; state.open.clear(); load(); }
+  else if (t.dataset.toggle) { const id = +t.dataset.toggle; state.open.has(id) ? state.open.delete(id) : state.open.add(id); load(); }
+  else if (t.dataset.pin) { await patch(+t.dataset.pin, { pinned: !t.classList.contains("on") }, t.classList.contains("on") ? "已取消置顶" : "已置顶"); load(); }
+});
+document.addEventListener("change", async (e) => {
+  const t = e.target;
+  if (t.dataset.status) { await patch(+t.dataset.status, { status: t.value }, "状态已更新：" + t.selectedOptions[0].text); load(); }
+  else if (t.dataset.notes) { await patch(+t.dataset.notes, { notes: t.value }, "备注已保存"); }
+});
+let qTimer; $("#q").addEventListener("input", (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = e.target.value.trim(); load(); }, 250); });
+
+(async () => {
+  try {
+    state.overview = await api("/api/overview");
+    if (!state.overview.window) state.tab = "active";
+    await load();
+  } catch (err) { $("#main").innerHTML = `<div class="empty">加载失败：${esc(err.message)}</div>`; }
+})();
+</script>
+</body>
+</html>
