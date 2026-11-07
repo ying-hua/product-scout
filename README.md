@@ -81,8 +81,14 @@ macOS / Linux（cron，每天 8 点）：
 Windows（任务计划程序）：
 
 ```powershell
-schtasks /Create /SC DAILY /ST 08:00 /TN product-scout /TR "cmd /c cd /d D:\my-scout && python -m product_scout run >> data\run.log 2>&1"
+$dir = "D:\my-scout"; $pyw = (Get-Command pythonw).Source
+Register-ScheduledTask -TaskName "product-scout daily run" `
+  -Trigger (New-ScheduledTaskTrigger -Daily -At "08:00") `
+  -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable) `
+  -Action (New-ScheduledTaskAction -Execute $pyw -WorkingDirectory $dir -Argument "-m product_scout --log data\run.log run")
 ```
+
+用 `pythonw` 加 `--log` 运行时不会弹出命令行窗口，输出会追加写入日志文件。`-StartWhenAvailable` 表示到点时电脑没开的话，开机后会补跑。想让网页一直开着，可以用同样的方法再注册一个开机启动的任务（`New-ScheduledTaskTrigger -AtLogOn`），参数换成 `--log data\serve.log serve`。
 
 ## 改成你自己的口味
 

@@ -159,6 +159,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="product-scout", description="给内容创作者的选题池：发现正在变火的产品，按视频价值和时效排序。")
     p.add_argument("--version", action="version", version=f"product-scout {__version__}")
     p.add_argument("-c", "--config", help=f"配置文件路径（默认向上查找 {CONFIG_NAME}）")
+    p.add_argument("--log", help="把输出追加写入这个文件（定时任务用）")
     sub = p.add_subparsers(dest="cmd", required=True, metavar="命令")
 
     s = sub.add_parser("init", help="在目录里生成配置文件和提示词")
@@ -207,9 +208,20 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _log_to(path: str, argv: list[str]) -> None:
+    """Send all output to a log file (append). Lets schedulers run us via pythonw, with no console window."""
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    f = p.open("a", encoding="utf-8", buffering=1)
+    sys.stdout = sys.stderr = f
+    print(f"\n===== {datetime.now():%Y-%m-%d %H:%M:%S} product-scout {' '.join(argv)} =====")
+
+
 def main(argv: list[str] | None = None) -> int:
     _utf8_console()
     args = build_parser().parse_args(argv)
+    if args.log:
+        _log_to(args.log, argv if argv is not None else sys.argv[1:])
     if getattr(args, "needs_cfg", True) is False:
         return args.func(args)
     cfg = load_config(Path(args.config) if args.config else None)
